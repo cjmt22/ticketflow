@@ -1,0 +1,133 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  AGENT
+  CUSTOMER
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model Organisation {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  users     User[]
+  tickets   Ticket[]
+  auditLogs AuditLog[]
+
+  @@map("organisations")
+}
+
+model User {
+  id             String   @id @default(uuid()) @db.Uuid
+  organisationId String   @map("organisation_id") @db.Uuid
+  email          String   @unique
+  passwordHash   String   @map("password_hash")
+  fullName       String   @map("full_name")
+  role           Role
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organisation     Organisation @relation(fields: [organisationId], references: [id])
+  requestedTickets Ticket[]     @relation("TicketRequester")
+  assignedTickets  Ticket[]     @relation("TicketAssignee")
+  comments         Comment[]
+  auditLogs        AuditLog[]
+
+  @@index([organisationId])
+  @@map("users")
+}
+
+model Ticket {
+  id             String         @id @default(uuid()) @db.Uuid
+  organisationId String         @map("organisation_id") @db.Uuid
+  requesterId    String         @map("requester_id") @db.Uuid
+  assigneeId     String?        @map("assignee_id") @db.Uuid
+  title          String
+  description    String
+  status         TicketStatus   @default(OPEN)
+  priority       TicketPriority @default(MEDIUM)
+  category       String         @default("General")
+  aiCategory     String?        @map("ai_category")
+  aiPriority     String?        @map("ai_priority")
+  aiSentiment    String?        @map("ai_sentiment")
+  aiSummary      String?        @map("ai_summary")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+  requester    User         @relation("TicketRequester", fields: [requesterId], references: [id])
+  assignee     User?        @relation("TicketAssignee", fields: [assigneeId], references: [id])
+  comments     Comment[]
+  attachments  Attachment[]
+
+  @@index([organisationId, status])
+  @@index([organisationId, assigneeId])
+  @@map("tickets")
+}
+
+model Comment {
+  id         String   @id @default(uuid()) @db.Uuid
+  ticketId   String   @map("ticket_id") @db.Uuid
+  authorId   String   @map("author_id") @db.Uuid
+  body       String
+  isInternal Boolean  @default(false) @map("is_internal")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author User   @relation(fields: [authorId], references: [id])
+
+  @@index([ticketId])
+  @@map("comments")
+}
+
+model Attachment {
+  id         String   @id @default(uuid()) @db.Uuid
+  ticketId   String   @map("ticket_id") @db.Uuid
+  fileName   String   @map("file_name")
+  storageKey String   @map("storage_key")
+  sizeBytes  Int      @map("size_bytes")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+  @@map("attachments")
+}
+
+model AuditLog {
+  id             String   @id @default(uuid()) @db.Uuid
+  organisationId String   @map("organisation_id") @db.Uuid
+  actorId        String   @map("actor_id") @db.Uuid
+  action         String
+  entityType     String   @map("entity_type")
+  entityId       String   @map("entity_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+  actor        User         @relation(fields: [actorId], references: [id])
+
+  @@index([organisationId, createdAt])
+  @@map("audit_logs")
+}

@@ -9,6 +9,7 @@ erDiagram
     USER |o--o{ TICKET : "is assigned"
     USER ||--o{ COMMENT : writes
     USER ||--o{ AUDIT_LOG : performs
+    USER ||--o{ REFRESH_TOKEN : has
     TICKET ||--o{ COMMENT : has
     TICKET ||--o{ ATTACHMENT : has
 
@@ -69,6 +70,15 @@ erDiagram
         uuid entity_id
         datetime created_at
     }
+    REFRESH_TOKEN {
+        uuid id PK
+        uuid user_id FK
+        string token_hash UK
+        datetime expires_at
+        datetime revoked_at "nullable"
+        datetime created_at
+    }
+
 ```
 
 ## Design notes
@@ -76,3 +86,4 @@ erDiagram
 - **IDs:** UUIDs, so IDs can't be guessed or counted.
 - **AI fields:** stored separately from `category` and `priority`, so an Agent's override never destroys the original AI suggestion.
 - **Internal notes:** `is_internal` hides a comment from Customers.
+- **Refresh tokens:** only a SHA-256 hash is stored; tokens rotate on every use.

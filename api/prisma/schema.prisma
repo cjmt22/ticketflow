@@ -49,11 +49,12 @@ model User {
   isActive       Boolean  @default(true) @map("is_active")
   createdAt      DateTime @default(now()) @map("created_at")
 
-  organisation     Organisation @relation(fields: [organisationId], references: [id])
-  requestedTickets Ticket[]     @relation("TicketRequester")
-  assignedTickets  Ticket[]     @relation("TicketAssignee")
+  organisation     Organisation   @relation(fields: [organisationId], references: [id])
+  requestedTickets Ticket[]       @relation("TicketRequester")
+  assignedTickets  Ticket[]       @relation("TicketAssignee")
   comments         Comment[]
   auditLogs        AuditLog[]
+  refreshTokens    RefreshToken[]
 
   @@index([organisationId])
   @@map("users")
@@ -130,4 +131,18 @@ model AuditLog {
 
   @@index([organisationId, createdAt])
   @@map("audit_logs")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
 }

@@ -28,3 +28,7 @@ export interface AuthResult {
   accessToken: string;
   user: PublicUser;
 }
+
+export interface AuthSession extends AuthResult {
+  refreshToken: string;
+}

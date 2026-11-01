@@ -15,8 +15,8 @@ import type {
   UserRole,
 } from './auth.types.js';
 import { RefreshTokenService } from './refresh-token.service.js';
-
-const BCRYPT_ROUNDS = 12;
+import { isUniqueViolation } from '../common/prisma-errors.js';
+import { BCRYPT_ROUNDS } from './auth.constants.js';
 
 // When an email doesn't exist we still run a password comparison, so the
 // response time doesn't reveal which emails are registered.
@@ -24,14 +24,6 @@ let dummyHash: Promise<string> | undefined;
 function getDummyHash(): Promise<string> {
   dummyHash ??= bcrypt.hash('not-a-real-password', BCRYPT_ROUNDS);
   return dummyHash;
-}
-
-function isUniqueViolation(error: unknown): boolean {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    (error as { code?: string }).code === 'P2002'
-  );
 }
 
 interface UserRecord {

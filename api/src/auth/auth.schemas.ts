@@ -1,9 +1,9 @@
    import { z } from 'zod';
 
-   const emailSchema = z.string().trim().toLowerCase().pipe(z.email().max(254));
+   export const emailSchema = z.string().trim().toLowerCase().pipe(z.email().max(254));
 
    // bcrypt only uses the first 72 characters, so we cap the length there.
-   const passwordSchema = z
+   export const passwordSchema = z
      .string()
      .min(10, 'Password must be at least 10 characters')
      .max(72, 'Password must be at most 72 characters');

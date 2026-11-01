@@ -1,4 +1,5 @@
 import { ConflictException, UnauthorizedException } from '@nestjs/common';
+import type { RefreshTokenService } from './refresh-token.service.js';
 import { JwtService } from '@nestjs/jwt';
 import bcrypt from 'bcryptjs';
 import type { PrismaService } from '../prisma/prisma.service.js';
@@ -39,8 +40,18 @@ function setup() {
     user: { findUnique: vi.fn() },
     $transaction: vi.fn(async (fn: (t: typeof tx) => unknown) => fn(tx)),
   };
-  const service = new AuthService(prisma as unknown as PrismaService, jwt);
-  return { service, prisma, tx };
+  const refreshTokens = {
+    issue: vi.fn().mockResolvedValue('refresh-token-1'),
+    rotate: vi.fn(),
+    revoke: vi.fn(),
+    revokeAllForUser: vi.fn(),
+  };
+  const service = new AuthService(
+    prisma as unknown as PrismaService,
+    jwt,
+    refreshTokens as unknown as RefreshTokenService,
+  );
+  return { service, prisma, tx, refreshTokens };
 }
 
 const registerDto = {

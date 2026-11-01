@@ -10,10 +10,11 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import type { LoginDto, RegisterOrganisationDto } from './auth.schemas.js';
 import type {
   AccessTokenPayload,
-  AuthResult,
+  AuthSession,
   PublicUser,
   UserRole,
 } from './auth.types.js';
+import { RefreshTokenService } from './refresh-token.service.js';
 
 const BCRYPT_ROUNDS = 12;
 
@@ -46,9 +47,11 @@ export class AuthService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(JwtService) private readonly jwt: JwtService,
+    @Inject(RefreshTokenService)
+    private readonly refreshTokens: RefreshTokenService,
   ) {}
 
-  async registerOrganisation(dto: RegisterOrganisationDto): Promise<AuthResult> {
+  async registerOrganisation(dto: RegisterOrganisationDto): Promise<AuthSession> {
     const existing = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
@@ -58,8 +61,9 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
 
+    let user: UserRecord;
     try {
-      const user = await this.prisma.$transaction(async (tx) => {
+      user = await this.prisma.$transaction(async (tx) => {
         const organisation = await tx.organisation.create({
           data: { name: dto.organisationName },
         });
@@ -73,16 +77,18 @@ export class AuthService {
           },
         });
       });
-      return await this.buildResult(user);
     } catch (error) {
       if (isUniqueViolation(error)) {
         throw new ConflictException('An account with this email already exists');
       }
       throw error;
     }
+
+    const refreshToken = await this.refreshTokens.issue(user.id);
+    return this.toSession(user, refreshToken);
   }
 
-  async login(dto: LoginDto): Promise<AuthResult> {
+  async login(dto: LoginDto): Promise<AuthSession> {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
@@ -92,7 +98,26 @@ export class AuthService {
     if (!user || !passwordOk || !user.isActive) {
       throw new UnauthorizedException('Invalid email or password');
     }
-    return this.buildResult(user);
+
+    const refreshToken = await this.refreshTokens.issue(user.id);
+    return this.toSession(user, refreshToken);
+  }
+
+  async refresh(presentedToken: string): Promise<AuthSession> {
+    const { userId, refreshToken } =
+      await this.refreshTokens.rotate(presentedToken);
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user || !user.isActive) {
+      await this.refreshTokens.revokeAllForUser(userId);
+      throw new UnauthorizedException('Account not found or deactivated');
+    }
+    return this.toSession(user, refreshToken);
+  }
+
+  async logout(presentedToken: string | undefined): Promise<void> {
+    if (!presentedToken) return;
+    await this.refreshTokens.revoke(presentedToken);
   }
 
   async getProfile(userId: string) {
@@ -113,7 +138,10 @@ export class AuthService {
     };
   }
 
-  private async buildResult(user: UserRecord): Promise<AuthResult> {
+  private async toSession(
+    user: UserRecord,
+    refreshToken: string,
+  ): Promise<AuthSession> {
     const payload: AccessTokenPayload = {
       sub: user.id,
       org: user.organisationId,
@@ -127,6 +155,6 @@ export class AuthService {
       role: user.role,
       organisationId: user.organisationId,
     };
-    return { accessToken, user: publicUser };
+    return { accessToken, user: publicUser, refreshToken };
   }
 }

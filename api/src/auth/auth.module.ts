@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { RefreshTokenService } from './refresh-token.service.js';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { env } from '../config/env.js';
@@ -17,6 +18,7 @@ import { RolesGuard } from './roles.guard.js';
   controllers: [AuthController],
   providers: [
     AuthService,
+    RefreshTokenService,
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
   ],

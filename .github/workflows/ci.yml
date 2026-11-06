@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# If you push again while a run is in progress, cancel the old run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api:
+    name: API (build and tests)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    defaults:
+      run:
+        working-directory: api
+
+    # A throwaway PostgreSQL that exists only for this run.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ticketflow
+          POSTGRES_PASSWORD: ci_only_password
+          POSTGRES_DB: ticketflow
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ticketflow -d ticketflow"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    # These values are for the throwaway CI database only, not real secrets.
+    env:
+      DATABASE_URL: postgresql://ticketflow:ci_only_password@localhost:5432/ticketflow?schema=public
+      JWT_ACCESS_SECRET: ci-only-secret-ci-only-secret-ci-only-1234
+
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate the Prisma client
+        run: npx prisma generate
+
+      - name: Build
+        run: npm run build
+
+      - name: Unit tests
+        run: npm test
+
+      - name: End-to-end tests
+        run: npm run test:e2e

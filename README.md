@@ -1,5 +1,7 @@
 # TicketFlow
 
+[![CI](https://github.com/cjmt22/ticketflow/actions/workflows/ci.yml/badge.svg)](https://github.com/cjmt22/ticketflow/actions/workflows/ci.yml)
+
 A multi-tenant helpdesk SaaS where an AI assistant triages support tickets.
 
 > 🚧 Work in progress. Building in public, follow along on LinkedIn.

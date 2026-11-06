@@ -9,6 +9,7 @@ import {
 import type { AuthUser } from '../auth/auth.types.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { canTransition, type TicketStatus } from './ticket-status.js';
+import { scopeFor } from './ticket-scope.js';
 import type {
   CreateTicketDto,
   ListTicketsQuery,
@@ -33,17 +34,6 @@ const TICKET_SELECT = {
   requester: { select: { id: true, fullName: true } },
   assignee: { select: { id: true, fullName: true } },
 } as const;
-
-// Every ticket query starts from this: the company always comes from the
-// token, and customers can only ever see tickets they requested themselves.
-function scopeFor(actor: AuthUser): {
-  organisationId: string;
-  requesterId?: string;
-} {
-  return actor.role === 'CUSTOMER'
-    ? { organisationId: actor.organisationId, requesterId: actor.id }
-    : { organisationId: actor.organisationId };
-}
 
 function orderByFor(sort: ListTicketsQuery['sort']) {
   switch (sort) {

@@ -8,6 +8,9 @@ import { PrismaModule } from './prisma/prisma.module.js';
 import { HealthModule } from './health/health.module.js';
 import { TicketsModule } from './tickets/tickets.module.js';
 import { CommentsModule } from './comments/comments.module.js';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { env } from './config/env.js';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
@@ -22,8 +25,11 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
       appSecret: process.env.OBSERVE_APP_SECRET ?? 'YOUR_APP_SECRET',
       serviceId: 'api',
     }),
+    ThrottlerModule.forRoot({
+      throttlers: [{ ttl: 60_000, limit: env.RATE_LIMIT_PER_MINUTE }],
+    }),
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }, AppService],
 })
 export class AppModule {}

@@ -27,12 +27,19 @@ import {
 } from './cookies.js';
 import { CurrentUser } from './current-user.decorator.js';
 import { Public } from './public.decorator.js';
+import { Throttle } from '@nestjs/throttler';
+import { env } from '../config/env.js';
 
+// Login, register and refresh are the targets of password guessing, so they get a tighter limit.
+const AUTH_THROTTLE = {
+  default: { limit: env.AUTH_RATE_LIMIT_PER_MINUTE, ttl: 60_000 },
+};
 @Controller('auth')
 export class AuthController {
   constructor(@Inject(AuthService) private readonly auth: AuthService) {}
 
   @Public()
+  @Throttle(AUTH_THROTTLE)
   @Post('register-organisation')
   async register(
     @Body(new ZodValidationPipe(registerOrganisationSchema))
@@ -44,6 +51,7 @@ export class AuthController {
 
   @Public()
   @HttpCode(200)
+  @Throttle(AUTH_THROTTLE)
   @Post('login')
   async login(
     @Body(new ZodValidationPipe(loginSchema)) body: LoginDto,
@@ -54,6 +62,7 @@ export class AuthController {
 
   @Public()
   @HttpCode(200)
+  @Throttle(AUTH_THROTTLE)
   @Post('refresh')
   async refresh(
     @Req() req: Request,

@@ -33,6 +33,11 @@ export default defineConfig({
     env: {
       DATABASE_URL: databaseUrl,
       JWT_ACCESS_SECRET: jwtSecret,
+      CORS_ORIGINS: 'http://localhost:5173',
+      TRUST_PROXY: 'false',
+      // High limits, so the many logins in other test files never trip the limiter.
+      RATE_LIMIT_PER_MINUTE: '100000',
+      AUTH_RATE_LIMIT_PER_MINUTE: '100000',
     },
   },
 });

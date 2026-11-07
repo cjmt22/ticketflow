@@ -2,8 +2,6 @@ import { AuthModule } from './auth/auth.module.js';
 import { UsersModule } from './users/users.module.js';
 import { Module } from '@nestjs/common';
 import { createObserveModule } from '@nestjs/observe';
-import { AppController } from './app.controller.js';
-import { AppService } from './app.service.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { HealthModule } from './health/health.module.js';
 import { TicketsModule } from './tickets/tickets.module.js';
@@ -28,8 +26,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     ThrottlerModule.forRoot({
       throttlers: [{ ttl: 60_000, limit: env.RATE_LIMIT_PER_MINUTE }],
     }),
-  ],
-  controllers: [AppController],
-  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }, AppService],
+  ],  
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}

@@ -1,4 +1,5 @@
 {
+  "ignorePatterns": ["src/generated/**", "dist/**"],
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "rules": {
     "typescript/no-explicit-any": "off",

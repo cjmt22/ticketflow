@@ -10,6 +10,7 @@ import {
 import * as authApi from '../api/auth';
 import { refreshSession, setSessionExpiredHandler } from '../api/client';
 import type { RegisterInput, User } from '../api/types';
+import { queryClient } from '../queryClient';
 
 export type AuthState =
   | { status: 'loading' }
@@ -31,7 +32,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Restore the session on page load: the refresh cookie survives a reload, the access token does not.
   useEffect(() => {
     let cancelled = false;
-    setSessionExpiredHandler(() => setState({ status: 'anonymous' }));
+    setSessionExpiredHandler(() => {
+      queryClient.clear();
+      setState({ status: 'anonymous' });
+    });
 
     refreshSession()
       .then((result) => {
@@ -54,11 +58,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     const result = await authApi.login(email, password);
+    queryClient.clear();
     setState({ status: 'authenticated', user: result.user });
   }, []);
 
   const registerOrganisation = useCallback(async (input: RegisterInput) => {
     const result = await authApi.registerOrganisation(input);
+    queryClient.clear();
     setState({ status: 'authenticated', user: result.user });
   }, []);
 
@@ -66,6 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await authApi.logout();
     } finally {
+      queryClient.clear();
       setState({ status: 'anonymous' });
     }
   }, []);

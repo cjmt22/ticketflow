@@ -57,3 +57,18 @@ export interface Paginated<T> {
   pageSize: number;
   total: number;
 }
+
+export interface CommentAuthor {
+  id: string;
+  fullName: string;
+  role: Role;
+}
+
+export interface TicketComment {
+  id: string;
+  ticketId: string;
+  body: string;
+  isInternal: boolean;
+  createdAt: string;
+  author: CommentAuthor;
+}

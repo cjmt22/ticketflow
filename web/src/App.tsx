@@ -4,6 +4,7 @@ import { Layout } from './components/Layout';
 import { LoginPage } from './pages/LoginPage';
 import { NewTicketPage } from './pages/NewTicketPage';
 import { RegisterPage } from './pages/RegisterPage';
+import { TicketDetailPage } from './pages/TicketDetailPage';
 import { TicketsPage } from './pages/TicketsPage';
 
 export function App() {
@@ -15,6 +16,7 @@ export function App() {
         <Route element={<Layout />}>
           <Route path="/tickets" element={<TicketsPage />} />
           <Route path="/tickets/new" element={<NewTicketPage />} />
+          <Route path="/tickets/:id" element={<TicketDetailPage />} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/tickets" replace />} />
